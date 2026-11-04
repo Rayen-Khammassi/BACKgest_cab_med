@@ -1,8 +1,8 @@
 
-package com.enicarthage.service;
+package com.enicarthage.auth.service;
 
-import com.enicarthage.dao.UtilisateurDAO;
-import com.enicarthage.model.UtilisateurAuth;
+import com.enicarthage.utilisateur.dao.UtilisateurDAO;
+import com.enicarthage.utilisateur.model.UtilisateurAuth;
 
 import org.mindrot.jbcrypt.BCrypt;
 

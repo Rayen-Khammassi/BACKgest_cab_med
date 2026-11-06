@@ -1,5 +1,5 @@
 
-package com.enicarthage.utilisateur.model;
+package com.enicarthage.model;
 
 public abstract class Utilisateur {
 

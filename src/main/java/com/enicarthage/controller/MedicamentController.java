@@ -1,9 +1,9 @@
 
-package com.enicarthage.medicament.controller;
+package com.enicarthage.controller;
 
-import com.enicarthage.medicament.dto.MedicamentRequest;
-import com.enicarthage.medicament.model.Medicament;
-import com.enicarthage.medicament.service.MedicamentService;
+import com.enicarthage.dto.MedicamentRequest;
+import com.enicarthage.model.Medicament;
+import com.enicarthage.service.MedicamentService;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;

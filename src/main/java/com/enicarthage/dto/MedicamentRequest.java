@@ -1,5 +1,5 @@
 
-package com.enicarthage.medicament.dto;
+package com.enicarthage.dto;
 
 public class MedicamentRequest {
 

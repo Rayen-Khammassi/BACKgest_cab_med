@@ -1,8 +1,8 @@
 
 package com.enicarthage.main;
 
-import com.enicarthage.utilisateur.model.UtilisateurAuth;
-import com.enicarthage.auth.service.AuthService;
+import com.enicarthage.model.UtilisateurAuth;
+import com.enicarthage.service.AuthService;
 
 import java.sql.SQLException;
 

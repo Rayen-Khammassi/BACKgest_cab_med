@@ -160,3 +160,45 @@ CREATE TABLE IF NOT EXISTS prescription (
     FOREIGN KEY (id_medicament)
     REFERENCES medicament(id_medicament)
 );
+
+
+
+// =========================================
+-- 10. INSERTION D'UN DOCTEUR POUR TEST
+-- =========================================
+USE gest_cab_med;
+
+START TRANSACTION;
+
+-- 1. Créer l'utilisateur
+INSERT INTO utilisateur (
+    nom,
+    prenom,
+    email,
+    login,
+    mot_de_passe
+)
+VALUES (
+           'Ben Ali',
+           'Ahmed',
+           'ahmed.benali@example.com',
+           'docteur1',
+           '$2a$12$ZkK4xkseq159pJd5pLifle1yBDANkFPbfbMVA6GrPQEhRNTfltAH2'
+       );
+
+-- 2. Récupérer l'identifiant généré
+SET @id_docteur = LAST_INSERT_ID();
+
+-- 3. Ajouter le rôle DOCTEUR
+INSERT INTO docteur (
+    id_utilisateur,
+    specialite,
+    numero_ordre
+)
+VALUES (
+           @id_docteur,
+           'Médecine générale',
+           'ORD-TEST-001'
+       );
+
+COMMIT;

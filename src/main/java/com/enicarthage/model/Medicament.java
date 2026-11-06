@@ -1,5 +1,5 @@
 
-package com.enicarthage.medicament.model;
+package com.enicarthage.model;
 
 public class Medicament {
 

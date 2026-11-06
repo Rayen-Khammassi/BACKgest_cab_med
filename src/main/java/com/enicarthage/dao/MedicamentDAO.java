@@ -1,8 +1,8 @@
 
-package com.enicarthage.medicament.dao;
+package com.enicarthage.dao;
 
 import com.enicarthage.config.DatabaseConnection;
-import com.enicarthage.medicament.model.Medicament;
+import com.enicarthage.model.Medicament;
 
 import java.sql.*;
 import java.util.ArrayList;

@@ -1,5 +1,5 @@
 
-package com.enicarthage.auth.dto;
+package com.enicarthage.model;
 
 public class AuthResponse {
 

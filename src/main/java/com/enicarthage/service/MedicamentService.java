@@ -1,9 +1,9 @@
 
-package com.enicarthage.medicament.service;
+package com.enicarthage.service;
 
-import com.enicarthage.medicament.dao.MedicamentDAO;
-import com.enicarthage.medicament.dto.MedicamentRequest;
-import com.enicarthage.medicament.model.Medicament;
+import com.enicarthage.dao.MedicamentDAO;
+import com.enicarthage.dto.MedicamentRequest;
+import com.enicarthage.model.Medicament;
 
 import java.sql.SQLException;
 import java.util.List;

@@ -59,6 +59,80 @@ public class OrdonnanceDAO {
         }
     }
 
+    public boolean update(int idOrdonnance, List<PrescriptionItem> items) throws SQLException {
+        String deleteItemsSql = "DELETE FROM prescription WHERE id_ordonnance = ?";
+        String insertItemSql = """
+            INSERT INTO prescription (posologie, frequence, duree, quantite, id_ordonnance, id_medicament)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """;
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // Remove existing items for this ordonnance
+                try (PreparedStatement delStmt = conn.prepareStatement(deleteItemsSql)) {
+                    delStmt.setInt(1, idOrdonnance);
+                    delStmt.executeUpdate();
+                }
+
+                // Insert updated prescription items
+                if (items != null && !items.isEmpty()) {
+                    try (PreparedStatement insertStmt = conn.prepareStatement(insertItemSql)) {
+                        for (PrescriptionItem item : items) {
+                            insertStmt.setString(1, item.getPosologie());
+                            insertStmt.setString(2, item.getFrequence());
+                            insertStmt.setString(3, item.getDuree());
+                            insertStmt.setInt(4, item.getQuantite() <= 0 ? 1 : item.getQuantite());
+                            insertStmt.setInt(5, idOrdonnance);
+                            insertStmt.setInt(6, item.getIdMedicament());
+                            insertStmt.addBatch();
+                        }
+                        insertStmt.executeBatch();
+                    }
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
+    public boolean delete(int idOrdonnance) throws SQLException {
+        String deletePrescriptionSql = "DELETE FROM prescription WHERE id_ordonnance = ?";
+        String deleteOrdonnanceSql = "DELETE FROM ordonnance WHERE id_ordonnance = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // Delete associated prescriptions first
+                try (PreparedStatement delPresc = conn.prepareStatement(deletePrescriptionSql)) {
+                    delPresc.setInt(1, idOrdonnance);
+                    delPresc.executeUpdate();
+                }
+
+                // Delete the ordonnance record
+                int affected;
+                try (PreparedStatement delOrd = conn.prepareStatement(deleteOrdonnanceSql)) {
+                    delOrd.setInt(1, idOrdonnance);
+                    affected = delOrd.executeUpdate();
+                }
+
+                conn.commit();
+                return affected > 0;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
     public List<Ordonnance> findByPatient(int idPatient) throws SQLException {
         String sql = """
             SELECT

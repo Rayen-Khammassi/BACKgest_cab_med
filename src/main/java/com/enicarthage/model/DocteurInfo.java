@@ -2,6 +2,7 @@ package com.enicarthage.model;
 
 public class DocteurInfo {
     private int idDocteur;
+    private int idUtilisateur;
     private String nom;
     private String prenom;
     private String specialite;
@@ -9,6 +10,7 @@ public class DocteurInfo {
 
     public DocteurInfo(int idDocteur, String nom, String prenom, String specialite, String numeroOrdre) {
         this.idDocteur = idDocteur;
+        this.idUtilisateur = idDocteur;
         this.nom = nom;
         this.prenom = prenom;
         this.specialite = specialite;
@@ -17,6 +19,10 @@ public class DocteurInfo {
 
     public int getIdDocteur() {
         return idDocteur;
+    }
+
+    public int getIdUtilisateur() {
+        return idUtilisateur;
     }
 
     public String getNom() {

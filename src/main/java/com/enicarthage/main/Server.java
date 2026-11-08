@@ -47,14 +47,17 @@ public class Server {
             medServer.start();
 
             System.out.println("=================================================");
-            System.out.println(" Backend GESTCABMED — Serveurs démarrés");
+            System.out.println(" Backend Al-Zahraoui — Serveurs démarrés");
             System.out.println("-------------------------------------------------");
-            System.out.println(" [8081] Login API:        http://localhost:" + port + "/api/auth/login");
-            System.out.println(" [8081] Register API:     http://localhost:" + port + "/api/auth/register");
-            System.out.println(" [8081] Doctors API:      http://localhost:" + port + "/api/doctors");
-            System.out.println(" [8081] Appointments API: http://localhost:" + port + "/api/appointments");
+            System.out.println(" [8081] Login API:         http://localhost:" + port + "/api/auth/login");
+            System.out.println(" [8081] Register API:      http://localhost:" + port + "/api/auth/register");
+            System.out.println(" [8081] Doctors API:       http://localhost:" + port + "/api/doctors");
+            System.out.println(" [8081] Appointments API:  http://localhost:" + port + "/api/appointments");
+            System.out.println(" [8081] Patients API:      http://localhost:" + port + "/api/patients");
+            System.out.println(" [8081] Consultations API: http://localhost:" + port + "/api/consultations");
+            System.out.println(" [8081] Prescriptions API: http://localhost:" + port + "/api/prescriptions");
             System.out.println("-------------------------------------------------");
-            System.out.println(" [8082] Medicaments API:  http://localhost:" + medPort + "/api/medicaments");
+            System.out.println(" [8082] Medicaments API:   http://localhost:" + medPort + "/api/medicaments");
             System.out.println("=================================================");
 
         } catch (Exception e) {

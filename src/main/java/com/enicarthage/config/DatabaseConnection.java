@@ -15,8 +15,7 @@ public class DatabaseConnection {
     static {
         try {
             Class.forName("org.mariadb.jdbc.Driver");
-            DriverManager.registerDriver(new org.mariadb.jdbc.Driver());
-        } catch (Exception e) {
+        } catch (ClassNotFoundException e) {
             System.err.println("[DatabaseConnection] Driver registration: " + e.getMessage());
         }
     }

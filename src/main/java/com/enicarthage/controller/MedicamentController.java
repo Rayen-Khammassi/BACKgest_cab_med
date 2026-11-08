@@ -33,23 +33,23 @@ public class MedicamentController implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        // CORS pre-flight
-        if (HttpUtils.handleCorsAndPreflight(exchange)) return;
-
-        String method = exchange.getRequestMethod().toUpperCase();
-        String path   = exchange.getRequestURI().getPath(); // e.g. /api/medicaments or /api/medicaments/3
-
-        // Extract optional trailing segment after /api/medicaments
-        String prefix     = "/api/medicaments";
-        String afterPrefix = path.substring(prefix.length()); // "" | "/3"
-
         try {
+            // CORS pre-flight
+            if (HttpUtils.handleCorsAndPreflight(exchange)) return;
+
+            String method = exchange.getRequestMethod().toUpperCase();
+            String path   = exchange.getRequestURI().getPath(); // e.g. /api/medicaments or /api/medicaments/3
+
+            // Extract optional trailing segment after /api/medicaments
+            String prefix     = "/api/medicaments";
+            String afterPrefix = path.substring(prefix.length()); // "" | "/3"
+
             if (afterPrefix.isEmpty() || afterPrefix.equals("/")) {
                 // Collection endpoint: GET (list) or POST (create)
                 switch (method) {
                     case "GET"  -> handleList(exchange);
                     case "POST" -> handleCreate(exchange);
-                    default     -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée");
+                    default     -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Utilisez GET ou POST.");
                 }
             } else {
                 // Item endpoint: parse numeric id
@@ -65,12 +65,19 @@ public class MedicamentController implements HttpHandler {
                     case "GET"    -> handleGet(exchange, id);
                     case "PUT"    -> handleUpdate(exchange, id);
                     case "DELETE" -> handleDelete(exchange, id);
-                    default       -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée");
+                    default       -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Utilisez GET, PUT ou DELETE.");
                 }
             }
         } catch (SQLException e) {
             System.err.println("[MedicamentController] SQL error: " + e.getMessage());
+            e.printStackTrace();
             HttpUtils.sendError(exchange, 500, "Erreur base de données");
+        } catch (Exception e) {
+            System.err.println("[MedicamentController] Unexpected error: " + e.getMessage());
+            e.printStackTrace();
+            HttpUtils.sendError(exchange, 500, "Erreur serveur inattendue");
+        } finally {
+            exchange.close();
         }
     }
 
@@ -150,10 +157,8 @@ public class MedicamentController implements HttpHandler {
             HttpUtils.sendError(exchange, 404, "Médicament introuvable");
             return;
         }
-        // 204 No Content — no body
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+        // 204 No Content — no body, exchange will be closed in outer finally
         exchange.sendResponseHeaders(204, -1);
-        exchange.close();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

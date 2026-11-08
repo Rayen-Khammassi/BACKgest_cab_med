@@ -6,6 +6,7 @@ import com.enicarthage.service.PatientRegistrationService;
 import com.enicarthage.util.HttpUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -28,10 +29,11 @@ public class PatientController implements HttpHandler {
 
             String method = exchange.getRequestMethod().toUpperCase();
             switch (method) {
-                case "GET"  -> handleGet(exchange);
-                case "POST" -> handlePost(exchange);
-                case "PUT"  -> handlePut(exchange);
-                default     -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée.");
+                case "GET"    -> handleGet(exchange);
+                case "POST"   -> handlePost(exchange);
+                case "PUT"    -> handlePut(exchange);
+                case "DELETE" -> handleDelete(exchange);
+                default       -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Utilisez GET, POST, PUT ou DELETE.");
             }
         } catch (Exception e) {
             System.err.println("[PatientController] Error: " + e.getMessage());
@@ -52,7 +54,7 @@ public class PatientController implements HttpHandler {
             HttpUtils.sendJson(exchange, 200, patients);
         } else {
             try {
-                int id = Integer.parseInt(after);
+                int id = Integer.parseInt(after.split("/")[0]);
                 Optional<PatientDetails> p = dao.findById(id);
                 if (p.isPresent()) {
                     HttpUtils.sendJson(exchange, 200, p.get());
@@ -60,7 +62,7 @@ public class PatientController implements HttpHandler {
                     HttpUtils.sendError(exchange, 404, "Patient introuvable.");
                 }
             } catch (NumberFormatException e) {
-                HttpUtils.sendError(exchange, 400, "Identifiant invalide.");
+                HttpUtils.sendError(exchange, 400, "Identifiant non numérique.");
             }
         }
     }
@@ -97,10 +99,18 @@ public class PatientController implements HttpHandler {
                     "message", "Patient enregistré avec succès.",
                     "login", login
             ));
+        } catch (JsonSyntaxException e) {
+            HttpUtils.sendError(exchange, 400, "Format JSON invalide.");
         } catch (IllegalArgumentException e) {
             HttpUtils.sendError(exchange, 400, e.getMessage());
         } catch (SQLException e) {
-            HttpUtils.sendError(exchange, 500, "Erreur base de données lors de la création du patient.");
+            System.err.println("[PatientController] SQL Error: " + e.getMessage());
+            e.printStackTrace();
+            if (e.getErrorCode() == 1062) {
+                HttpUtils.sendError(exchange, 409, "Un patient avec cet email ou cet identifiant existe déjà.");
+            } else {
+                HttpUtils.sendError(exchange, 500, "Erreur base de données lors de la création du patient.");
+            }
         }
     }
 
@@ -157,6 +167,32 @@ public class PatientController implements HttpHandler {
                 HttpUtils.sendError(exchange, 404, "Patient introuvable.");
             }
 
+        } catch (JsonSyntaxException e) {
+            HttpUtils.sendError(exchange, 400, "Format JSON invalide.");
+        } catch (NumberFormatException e) {
+            HttpUtils.sendError(exchange, 400, "Identifiant patient non numérique.");
+        }
+    }
+
+    private void handleDelete(HttpExchange exchange) throws IOException, SQLException {
+        String path = exchange.getRequestURI().getPath();
+        String prefix = "/api/patients";
+        String after = path.substring(prefix.length()).replaceAll("^/|/$", "");
+
+        if (after.isEmpty()) {
+            HttpUtils.sendError(exchange, 400, "ID du patient manquant dans l'URL.");
+            return;
+        }
+
+        try {
+            int id = Integer.parseInt(after.split("/")[0]);
+            // Deactivate patient to safeguard medical history
+            boolean updated = dao.setActif(id, false);
+            if (updated) {
+                HttpUtils.sendSuccess(exchange, 200, "Dossier patient désactivé avec succès.");
+            } else {
+                HttpUtils.sendError(exchange, 404, "Patient introuvable.");
+            }
         } catch (NumberFormatException e) {
             HttpUtils.sendError(exchange, 400, "Identifiant patient non numérique.");
         }

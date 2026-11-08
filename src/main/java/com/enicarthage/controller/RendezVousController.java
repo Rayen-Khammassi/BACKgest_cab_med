@@ -26,6 +26,7 @@ public class RendezVousController implements HttpHandler {
         int idDocteur;
         String dateHeure;
         String motif;
+        String statut;
     }
 
     private static class UpdateStatusRequest {
@@ -46,7 +47,7 @@ public class RendezVousController implements HttpHandler {
                 case "GET" -> handleGet(exchange);
                 case "POST" -> handlePost(exchange);
                 case "PUT" -> handlePut(exchange);
-                default -> HttpUtils.sendError(exchange, 405, "Method not allowed. Use GET, POST, or PUT.");
+                default -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Utilisez GET, POST ou PUT.");
             }
 
         } catch (Exception e) {
@@ -105,19 +106,28 @@ public class RendezVousController implements HttpHandler {
                 formattedDate += ":00";
             }
 
+            String statutInitial = "DEMANDE";
+            if (req.statut != null && !req.statut.isBlank()) {
+                String candidate = req.statut.trim().toUpperCase();
+                if (STATUTS_VALIDES.contains(candidate)) {
+                    statutInitial = candidate;
+                }
+            }
+
             RendezVous rdv = new RendezVous();
             rdv.setIdPatient(req.idPatient);
             rdv.setIdDocteur(req.idDocteur);
             rdv.setDateHeure(formattedDate);
             rdv.setMotif(req.motif != null ? req.motif.trim() : "");
-            rdv.setStatut("DEMANDE");
+            rdv.setStatut(statutInitial);
 
             int idRdv = rendezVousDAO.create(rdv);
             if (idRdv > 0) {
                 HttpUtils.sendJson(exchange, 201, Map.of(
                         "success", true,
-                        "message", "Demande de rendez-vous enregistrée avec succès.",
-                        "idRdv", idRdv
+                        "message", "Rendez-vous enregistré avec succès.",
+                        "idRdv", idRdv,
+                        "statut", statutInitial
                 ));
             } else {
                 HttpUtils.sendError(exchange, 500, "Échec lors de l'enregistrement du rendez-vous.");

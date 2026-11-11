@@ -1,6 +1,5 @@
 package com.enicarthage.controller;
 
-import com.enicarthage.dto.PatientDetailsDTO;
 import com.enicarthage.model.PatientDetails;
 import com.enicarthage.service.PatientRegistrationService;
 import com.enicarthage.service.PatientService;

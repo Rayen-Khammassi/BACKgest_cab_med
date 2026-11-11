@@ -1,7 +1,6 @@
 package com.enicarthage.service;
 
 import com.enicarthage.dao.PatientDAO;
-import com.enicarthage.dto.PatientDetailsDTO;
 import com.enicarthage.exception.ResourceNotFoundException;
 import com.enicarthage.exception.ValidationException;
 import com.enicarthage.model.PatientDetails;

@@ -1,5 +1,6 @@
 package com.enicarthage.controller;
 
+import com.enicarthage.dto.PatientRegistrationDTO;
 import com.enicarthage.service.PatientRegistrationService;
 import com.enicarthage.util.HttpUtils;
 import com.google.gson.Gson;
@@ -13,19 +14,17 @@ import java.util.Map;
 
 public class RegisterController implements HttpHandler {
 
-    private final PatientRegistrationService registrationService =
-            new PatientRegistrationService();
+    private final PatientRegistrationService registrationService;
+    private final Gson gson;
 
-    private final Gson gson = new Gson();
+    public RegisterController() {
+        this.registrationService = new PatientRegistrationService();
+        this.gson = new Gson();
+    }
 
-    private static class RegisterRequest {
-        String nom;
-        String prenom;
-        String email;
-        String login;
-        String password;
-        String dateNaissance;
-        String adresse;
+    public RegisterController(PatientRegistrationService registrationService) {
+        this.registrationService = registrationService;
+        this.gson = new Gson();
     }
 
     @Override
@@ -41,7 +40,7 @@ public class RegisterController implements HttpHandler {
             }
 
             String body = HttpUtils.readRequestBody(exchange);
-            RegisterRequest request = gson.fromJson(body, RegisterRequest.class);
+            PatientRegistrationDTO request = gson.fromJson(body, PatientRegistrationDTO.class);
 
             if (request == null) {
                 HttpUtils.sendError(exchange, 400, "Corps de requête invalide.");
@@ -49,23 +48,19 @@ public class RegisterController implements HttpHandler {
             }
 
             registrationService.registerPatient(
-                    request.nom,
-                    request.prenom,
-                    request.email,
-                    request.login,
-                    request.password,
-                    request.dateNaissance,
-                    request.adresse
+                    request.getNom(),
+                    request.getPrenom(),
+                    request.getEmail(),
+                    request.getLogin(),
+                    request.getPassword(),
+                    request.getDateNaissance(),
+                    request.getAdresse()
             );
 
-            HttpUtils.sendJson(
-                    exchange,
-                    201,
-                    Map.of(
-                            "success", true,
-                            "message", "Compte patient créé avec succès."
-                    )
-            );
+            HttpUtils.sendJson(exchange, 201, Map.of(
+                    "success", true,
+                    "message", "Patient enregistré avec succès. Vous pouvez maintenant vous connecter."
+            ));
 
         } catch (JsonSyntaxException e) {
             HttpUtils.sendError(exchange, 400, "Format JSON invalide.");
@@ -74,11 +69,10 @@ public class RegisterController implements HttpHandler {
         } catch (SQLException e) {
             System.err.println("[RegisterController] Database error: " + e.getMessage());
             e.printStackTrace();
-
             if (e.getErrorCode() == 1062) {
-                HttpUtils.sendError(exchange, 409, "Cet email ou cet identifiant est déjà utilisé.");
+                HttpUtils.sendError(exchange, 409, "Un compte existe déjà avec cet email ou cet identifiant.");
             } else {
-                HttpUtils.sendError(exchange, 500, "Erreur base de données lors de la création du compte.");
+                HttpUtils.sendError(exchange, 500, "Erreur lors de l'enregistrement en base de données.");
             }
         } catch (Exception e) {
             System.err.println("[RegisterController] Unexpected error: " + e.getMessage());

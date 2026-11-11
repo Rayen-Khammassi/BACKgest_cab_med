@@ -1,5 +1,5 @@
 
-package com.enicarthage.main;
+package com.enicarthage;
 
 import com.enicarthage.model.UtilisateurAuth;
 import com.enicarthage.service.AuthService;

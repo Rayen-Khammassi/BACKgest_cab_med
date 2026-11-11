@@ -1,5 +1,5 @@
 
-package com.enicarthage.main;
+package com.enicarthage;
 
 import com.enicarthage.config.DatabaseConnection;
 import java.sql.Connection;

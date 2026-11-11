@@ -2,7 +2,6 @@ package com.enicarthage.controller;
 
 import com.enicarthage.dto.CreateConsultationDTO;
 import com.enicarthage.exception.AppException;
-import com.enicarthage.exception.ValidationException;
 import com.enicarthage.model.Consultation;
 import com.enicarthage.service.ConsultationService;
 import com.enicarthage.util.HttpUtils;

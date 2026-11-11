@@ -3,7 +3,6 @@ package com.enicarthage.controller;
 import com.enicarthage.dto.CreateAppointmentDTO;
 import com.enicarthage.dto.UpdateAppointmentStatusDTO;
 import com.enicarthage.exception.AppException;
-import com.enicarthage.exception.ValidationException;
 import com.enicarthage.model.RendezVous;
 import com.enicarthage.service.RendezVousService;
 import com.enicarthage.util.HttpUtils;

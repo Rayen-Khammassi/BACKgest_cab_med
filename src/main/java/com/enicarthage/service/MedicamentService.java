@@ -1,6 +1,7 @@
 package com.enicarthage.service;
 
 import com.enicarthage.dao.MedicamentDAO;
+import com.enicarthage.exception.ConflictException;
 import com.enicarthage.exception.ResourceNotFoundException;
 import com.enicarthage.exception.ValidationException;
 import com.enicarthage.model.Medicament;
@@ -64,10 +65,18 @@ public class MedicamentService {
 
     public boolean deleteMedicament(int id) throws SQLException {
         if (id <= 0) throw new ValidationException("Identifiant de médicament invalide.");
-        boolean deleted = medicamentDAO.delete(id);
-        if (!deleted) {
-            throw new ResourceNotFoundException("Médicament introuvable avec l'ID : " + id);
+        try {
+            boolean deleted = medicamentDAO.delete(id);
+            if (!deleted) {
+                throw new ResourceNotFoundException("Médicament introuvable avec l'ID : " + id);
+            }
+            return true;
+        } catch (SQLException e) {
+            // MySQL error 1451 or SQLState 23000: foreign key constraint fails
+            if (e.getErrorCode() == 1451 || "23000".equals(e.getSQLState())) {
+                throw new ConflictException("Impossible de supprimer ce médicament car il est déjà prescrit dans une ou plusieurs ordonnances.");
+            }
+            throw e;
         }
-        return true;
     }
 }

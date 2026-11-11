@@ -43,7 +43,7 @@ public class ApiServer {
         medServer.start();
 
         System.out.println("=================================================");
-        System.out.println(" Backend Al-Zahraoui (GESTCABMED) : Serveurs Démarrés");
+        System.out.println(" Backend Al-Zahrawi (GESTCABMED) : Serveurs Démarrés");
         System.out.println("-------------------------------------------------");
         System.out.println(" [8081] API Principale :  http://localhost:" + port + "/api");
         System.out.println(" [8082] API Médicaments : http://localhost:" + medPort + "/api/medicaments");

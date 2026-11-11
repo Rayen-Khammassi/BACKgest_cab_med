@@ -64,6 +64,8 @@ public class AuthController implements HttpHandler {
                 return;
             }
 
+            String token = com.enicarthage.util.TokenUtils.generateToken(user.getIdUtilisateur(), user.getRole());
+
             AuthResponseDTO response = new AuthResponseDTO(
                     true,
                     "Authentification réussie.",
@@ -71,13 +73,16 @@ public class AuthController implements HttpHandler {
                     user.getNom(),
                     user.getPrenom(),
                     user.getLogin(),
-                    user.getRole()
+                    user.getRole(),
+                    token
             );
 
             HttpUtils.sendJson(exchange, 200, response);
 
         } catch (JsonSyntaxException e) {
             HttpUtils.sendError(exchange, 400, "Format JSON invalide.");
+        } catch (com.enicarthage.exception.AppException e) {
+            HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
         } catch (SQLException e) {
             System.err.println("[AuthController] Database error: " + e.getMessage());
             e.printStackTrace();

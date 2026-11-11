@@ -3,6 +3,7 @@ package com.enicarthage.service;
 
 import com.enicarthage.dao.UtilisateurDAO;
 import com.enicarthage.model.UtilisateurAuth;
+import com.enicarthage.exception.ForbiddenException;
 
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -40,12 +41,15 @@ public class AuthService {
                 utilisateur.getMotDePasse()
         );
 
-        // 5. Return the user if authentication succeeds
-        if (passwordCorrect) {
-            return utilisateur;
+        if (!passwordCorrect) {
+            return null;
         }
 
-        // Invalid password
-        return null;
+        // 5. If user is a PATIENT, verify that the account is active
+        if ("PATIENT".equalsIgnoreCase(utilisateur.getRole()) && !utilisateur.isActif()) {
+            throw new ForbiddenException("Votre compte patient a été désactivé par le cabinet. Veuillez contacter l'accueil.");
+        }
+
+        return utilisateur;
     }
 }

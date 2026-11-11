@@ -3,9 +3,11 @@ package com.enicarthage.controller;
 import com.enicarthage.dto.CreateAppointmentDTO;
 import com.enicarthage.dto.UpdateAppointmentStatusDTO;
 import com.enicarthage.exception.AppException;
+import com.enicarthage.exception.ForbiddenException;
 import com.enicarthage.model.RendezVous;
 import com.enicarthage.service.RendezVousService;
 import com.enicarthage.util.HttpUtils;
+import com.enicarthage.util.TokenUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.sun.net.httpserver.HttpExchange;
@@ -121,6 +123,9 @@ public class RendezVousController implements HttpHandler {
 
     private void handlePut(HttpExchange exchange) throws IOException {
         try {
+            // 1. Authenticate caller using trusted Bearer token
+            TokenUtils.UserPrincipal user = HttpUtils.getAuthenticatedUser(exchange);
+
             String body = HttpUtils.readRequestBody(exchange);
             UpdateAppointmentStatusDTO req = gson.fromJson(body, UpdateAppointmentStatusDTO.class);
 
@@ -129,8 +134,24 @@ public class RendezVousController implements HttpHandler {
                 return;
             }
 
-            rendezVousService.updateAppointmentStatus(req);
-            HttpUtils.sendSuccess(exchange, 200, "Statut du rendez-vous mis à jour avec succès (" + req.getStatut().trim().toUpperCase() + ").");
+            String nouveauStatut = req.getStatut().trim().toUpperCase();
+
+            // 2. Role-based execution
+            if ("PATIENT".equalsIgnoreCase(user.getRole())) {
+                if (!"ANNULE".equals(nouveauStatut)) {
+                    throw new ForbiddenException("En tant que patient, vous pouvez uniquement demander l'annulation de vos rendez-vous.");
+                }
+                rendezVousService.cancelAppointmentByPatient(req.getIdRdv(), user.getIdUtilisateur());
+                HttpUtils.sendSuccess(exchange, 200, "Rendez-vous annulé avec succès.");
+            } else if ("DOCTEUR".equalsIgnoreCase(user.getRole())) {
+                rendezVousService.updateAppointmentStatusByDoctor(req, user.getIdUtilisateur());
+                HttpUtils.sendSuccess(exchange, 200, "Statut du rendez-vous mis à jour avec succès (" + nouveauStatut + ").");
+            } else if ("SECRETAIRE".equalsIgnoreCase(user.getRole())) {
+                rendezVousService.updateAppointmentStatus(req);
+                HttpUtils.sendSuccess(exchange, 200, "Statut du rendez-vous mis à jour avec succès (" + nouveauStatut + ").");
+            } else {
+                throw new ForbiddenException("Rôle non autorisé à modifier le statut d'un rendez-vous.");
+            }
 
         } catch (JsonSyntaxException e) {
             HttpUtils.sendError(exchange, 400, "Format JSON invalide.");

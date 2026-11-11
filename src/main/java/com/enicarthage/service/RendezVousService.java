@@ -3,12 +3,15 @@ package com.enicarthage.service;
 import com.enicarthage.dao.RendezVousDAO;
 import com.enicarthage.dto.CreateAppointmentDTO;
 import com.enicarthage.dto.UpdateAppointmentStatusDTO;
+import com.enicarthage.exception.ConflictException;
+import com.enicarthage.exception.ForbiddenException;
 import com.enicarthage.exception.ResourceNotFoundException;
 import com.enicarthage.exception.ValidationException;
 import com.enicarthage.model.RendezVous;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public class RendezVousService {
@@ -87,5 +90,53 @@ public class RendezVousService {
         if (!updated) {
             throw new ResourceNotFoundException("Rendez-vous introuvable avec l'ID : " + req.getIdRdv());
         }
+    }
+
+    public void updateAppointmentStatusByDoctor(UpdateAppointmentStatusDTO req, int idDocteur) throws SQLException {
+        if (req == null || req.getIdRdv() <= 0) {
+            throw new ValidationException("idRdv obligatoire et valide.");
+        }
+        Optional<RendezVous> optRdv = rendezVousDAO.findById(req.getIdRdv());
+        if (optRdv.isEmpty()) {
+            throw new ResourceNotFoundException("Rendez-vous introuvable avec l'ID : " + req.getIdRdv());
+        }
+        RendezVous rdv = optRdv.get();
+        if (rdv.getIdDocteur() != idDocteur) {
+            throw new ForbiddenException("Accès refusé : vous n'êtes pas le médecin assigné à ce rendez-vous.");
+        }
+        updateAppointmentStatus(req);
+    }
+
+    public void cancelAppointmentByPatient(int idRdv, int idPatient) throws SQLException {
+        if (idRdv <= 0) {
+            throw new ValidationException("idRdv obligatoire et valide.");
+        }
+        if (idPatient <= 0) {
+            throw new ValidationException("idPatient obligatoire et valide.");
+        }
+
+        // 1. Atomic conditional update: only succeeds if statut is DEMANDE and id_patient matches
+        int updatedRows = rendezVousDAO.cancelByPatientAtomic(idRdv, idPatient);
+        if (updatedRows > 0) {
+            return;
+        }
+
+        // 2. If 0 rows updated, inspect exact state to return precise HTTP status code
+        Optional<RendezVous> optRdv = rendezVousDAO.findById(idRdv);
+        if (optRdv.isEmpty()) {
+            throw new ResourceNotFoundException("Rendez-vous introuvable avec l'ID : " + idRdv);
+        }
+
+        RendezVous rdv = optRdv.get();
+        if (rdv.getIdPatient() != idPatient) {
+            throw new ForbiddenException("Accès refusé : vous ne pouvez pas annuler le rendez-vous d'un autre patient.");
+        }
+
+        if (!"DEMANDE".equalsIgnoreCase(rdv.getStatut())) {
+            throw new ConflictException("Impossible d'annuler ce rendez-vous : son statut actuel est déjà " + rdv.getStatut() + ".");
+        }
+
+        // Race condition / concurrency conflict
+        throw new ConflictException("Le statut du rendez-vous a été modifié entre-temps.");
     }
 }

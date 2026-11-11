@@ -6,6 +6,7 @@ import com.enicarthage.model.RendezVous;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class RendezVousDAO {
 
@@ -68,6 +69,22 @@ public class RendezVousDAO {
     public List<RendezVous> findAll() throws SQLException {
         String sql = SELECT_BASE + " ORDER BY r.date_heure DESC";
         return executeQuery(sql, null);
+    }
+
+    public Optional<RendezVous> findById(int idRdv) throws SQLException {
+        String sql = SELECT_BASE + " WHERE r.id_rdv = ?";
+        List<RendezVous> list = executeQuery(sql, idRdv);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    public int cancelByPatientAtomic(int idRdv, int idPatient) throws SQLException {
+        String sql = "UPDATE rendez_vous SET statut = 'ANNULE' WHERE id_rdv = ? AND id_patient = ? AND statut = 'DEMANDE'";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, idRdv);
+            stmt.setInt(2, idPatient);
+            return stmt.executeUpdate();
+        }
     }
 
     public boolean updateStatut(int idRdv, String nouveauStatut) throws SQLException {

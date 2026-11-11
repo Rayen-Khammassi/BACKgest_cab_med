@@ -57,6 +57,15 @@ public class ConsultationService {
         return true;
     }
 
+    public boolean deleteConsultation(int id) throws SQLException {
+        if (id <= 0) throw new ValidationException("Identifiant de consultation invalide.");
+        boolean deleted = consultationDAO.delete(id);
+        if (!deleted) {
+            throw new ResourceNotFoundException("Consultation introuvable avec l'ID : " + id);
+        }
+        return true;
+    }
+
     public List<Consultation> getConsultationsByDoctor(int doctorId) throws SQLException {
         return consultationDAO.findByDocteur(doctorId);
     }

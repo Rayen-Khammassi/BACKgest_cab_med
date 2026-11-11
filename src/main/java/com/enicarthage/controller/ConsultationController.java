@@ -36,10 +36,11 @@ public class ConsultationController implements HttpHandler {
 
             String method = exchange.getRequestMethod().toUpperCase();
             switch (method) {
-                case "GET"  -> handleGet(exchange);
-                case "POST" -> handlePost(exchange);
-                case "PUT"  -> handlePut(exchange);
-                default     -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Utilisez GET, POST ou PUT.");
+                case "GET"    -> handleGet(exchange);
+                case "POST"   -> handlePost(exchange);
+                case "PUT"    -> handlePut(exchange);
+                case "DELETE" -> handleDelete(exchange);
+                default       -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Utilisez GET, POST, PUT ou DELETE.");
             }
         } catch (AppException e) {
             HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
@@ -146,6 +147,49 @@ public class ConsultationController implements HttpHandler {
             System.err.println("[ConsultationController] SQL Error: " + e.getMessage());
             e.printStackTrace();
             HttpUtils.sendError(exchange, 500, "Erreur lors de la modification de la consultation.");
+        }
+    }
+
+    private void handleDelete(HttpExchange exchange) throws IOException {
+        try {
+            String path = exchange.getRequestURI().getPath();
+            String prefix = "/api/consultations";
+            String after = path.substring(prefix.length()).replaceAll("^/|/$", "");
+
+            int idConsultation = -1;
+            if (!after.isEmpty()) {
+                try {
+                    idConsultation = Integer.parseInt(after.split("/")[0]);
+                } catch (NumberFormatException e) {
+                    HttpUtils.sendError(exchange, 400, "Identifiant non numérique dans l'URL.");
+                    return;
+                }
+            } else {
+                Map<String, String> params = HttpUtils.parseQueryParams(exchange.getRequestURI().getQuery());
+                if (params.containsKey("id")) {
+                    try {
+                        idConsultation = Integer.parseInt(params.get("id"));
+                    } catch (NumberFormatException e) {
+                        HttpUtils.sendError(exchange, 400, "Paramètre id non numérique.");
+                        return;
+                    }
+                }
+            }
+
+            if (idConsultation <= 0) {
+                HttpUtils.sendError(exchange, 400, "Identifiant de consultation manquant ou invalide.");
+                return;
+            }
+
+            consultationService.deleteConsultation(idConsultation);
+            HttpUtils.sendSuccess(exchange, 200, "Consultation supprimée avec succès et créneau de rendez-vous réinitialisé.");
+
+        } catch (AppException e) {
+            HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("[ConsultationController] SQL Error: " + e.getMessage());
+            e.printStackTrace();
+            HttpUtils.sendError(exchange, 500, "Erreur base de données lors de la suppression de la consultation.");
         }
     }
 }

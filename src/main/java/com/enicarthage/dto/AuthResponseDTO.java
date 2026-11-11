@@ -9,9 +9,15 @@ public class AuthResponseDTO {
     private String prenom;
     private String login;
     private String role;
+    private String token;
 
     public AuthResponseDTO(boolean success, String message, int idUtilisateur,
                            String nom, String prenom, String login, String role) {
+        this(success, message, idUtilisateur, nom, prenom, login, role, null);
+    }
+
+    public AuthResponseDTO(boolean success, String message, int idUtilisateur,
+                           String nom, String prenom, String login, String role, String token) {
         this.success = success;
         this.message = message;
         this.idUtilisateur = idUtilisateur;
@@ -19,6 +25,7 @@ public class AuthResponseDTO {
         this.prenom = prenom;
         this.login = login;
         this.role = role;
+        this.token = token;
     }
 
     public boolean isSuccess() { return success; }
@@ -28,4 +35,5 @@ public class AuthResponseDTO {
     public String getPrenom() { return prenom; }
     public String getLogin() { return login; }
     public String getRole() { return role; }
+    public String getToken() { return token; }
 }

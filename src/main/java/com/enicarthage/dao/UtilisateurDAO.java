@@ -26,7 +26,8 @@ public class UtilisateurDAO {
                     WHEN d.id_utilisateur IS NOT NULL THEN 'DOCTEUR'
                     WHEN s.id_utilisateur IS NOT NULL THEN 'SECRETAIRE'
                     ELSE NULL
-                END AS role
+                END AS role,
+                p.actif AS patient_actif
             FROM utilisateur u
             LEFT JOIN patient p
                 ON u.id_utilisateur = p.id_utilisateur
@@ -52,13 +53,22 @@ public class UtilisateurDAO {
                         return null;
                     }
 
+                    boolean actif = true;
+                    if ("PATIENT".equalsIgnoreCase(role)) {
+                        Object actifObj = rs.getObject("patient_actif");
+                        if (actifObj != null) {
+                            actif = rs.getBoolean("patient_actif");
+                        }
+                    }
+
                     return new UtilisateurAuth(
                         rs.getInt("id_utilisateur"),
                         rs.getString("nom"),
                         rs.getString("prenom"),
                         rs.getString("login"),
                         rs.getString("mot_de_passe"),
-                        role
+                        role,
+                        actif
                     );
                 }
             }

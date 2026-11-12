@@ -1,7 +1,8 @@
 package com.enicarthage.controller;
 
-import com.enicarthage.dao.MedicamentDAO;
+import com.enicarthage.exception.AppException;
 import com.enicarthage.model.Medicament;
+import com.enicarthage.service.MedicamentService;
 import com.enicarthage.util.HttpUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -11,7 +12,6 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Handles all /api/medicaments requests on the secondary server (port 8082).
@@ -28,8 +28,16 @@ public class MedicamentController implements HttpHandler {
     private static final int MAX_NOM    = 150;
     private static final int MAX_DOSAGE = 100;
 
-    private final MedicamentDAO dao  = new MedicamentDAO();
-    private final Gson          gson = new Gson();
+    private final MedicamentService medicamentService;
+    private final Gson gson = new Gson();
+
+    public MedicamentController() {
+        this.medicamentService = new MedicamentService();
+    }
+
+    public MedicamentController(MedicamentService medicamentService) {
+        this.medicamentService = medicamentService;
+    }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -41,7 +49,7 @@ public class MedicamentController implements HttpHandler {
             String path   = exchange.getRequestURI().getPath(); // e.g. /api/medicaments or /api/medicaments/3
 
             // Extract optional trailing segment after /api/medicaments
-            String prefix     = "/api/medicaments";
+            String prefix      = "/api/medicaments";
             String afterPrefix = path.substring(prefix.length()); // "" | "/3"
 
             if (afterPrefix.isEmpty() || afterPrefix.equals("/")) {
@@ -68,6 +76,8 @@ public class MedicamentController implements HttpHandler {
                     default       -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Utilisez GET, PUT ou DELETE.");
                 }
             }
+        } catch (AppException e) {
+            HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
         } catch (SQLException e) {
             System.err.println("[MedicamentController] SQL error: " + e.getMessage());
             e.printStackTrace();
@@ -83,18 +93,14 @@ public class MedicamentController implements HttpHandler {
 
     // ── GET /api/medicaments ─────────────────────────────────────────────────
     private void handleList(HttpExchange exchange) throws IOException, SQLException {
-        List<Medicament> list = dao.findAll();
+        List<Medicament> list = medicamentService.getAllMedicaments();
         HttpUtils.sendJson(exchange, 200, list);
     }
 
     // ── GET /api/medicaments/{id} ────────────────────────────────────────────
     private void handleGet(HttpExchange exchange, int id) throws IOException, SQLException {
-        Optional<Medicament> opt = dao.findById(id);
-        if (opt.isEmpty()) {
-            HttpUtils.sendError(exchange, 404, "Médicament introuvable");
-            return;
-        }
-        HttpUtils.sendJson(exchange, 200, opt.get());
+        Medicament m = medicamentService.getMedicamentById(id);
+        HttpUtils.sendJson(exchange, 200, m);
     }
 
     // ── POST /api/medicaments ────────────────────────────────────────────────
@@ -117,8 +123,7 @@ public class MedicamentController implements HttpHandler {
             return;
         }
 
-        Medicament m = new Medicament(0, nom, dosage);
-        Medicament created = dao.create(m);
+        Medicament created = medicamentService.createMedicament(nom, dosage);
         HttpUtils.sendJson(exchange, 201, created);
     }
 
@@ -142,21 +147,13 @@ public class MedicamentController implements HttpHandler {
             return;
         }
 
-        Optional<Medicament> updated = dao.update(id, new Medicament(0, nom, dosage));
-        if (updated.isEmpty()) {
-            HttpUtils.sendError(exchange, 404, "Médicament introuvable");
-            return;
-        }
-        HttpUtils.sendJson(exchange, 200, updated.get());
+        Medicament updated = medicamentService.updateMedicament(id, nom, dosage);
+        HttpUtils.sendJson(exchange, 200, updated);
     }
 
     // ── DELETE /api/medicaments/{id} ─────────────────────────────────────────
     private void handleDelete(HttpExchange exchange, int id) throws IOException, SQLException {
-        boolean deleted = dao.delete(id);
-        if (!deleted) {
-            HttpUtils.sendError(exchange, 404, "Médicament introuvable");
-            return;
-        }
+        medicamentService.deleteMedicament(id);
         // 204 No Content — no body, exchange will be closed in outer finally
         exchange.sendResponseHeaders(204, -1);
     }

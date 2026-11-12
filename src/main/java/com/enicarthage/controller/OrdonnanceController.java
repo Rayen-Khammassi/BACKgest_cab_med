@@ -1,8 +1,10 @@
 package com.enicarthage.controller;
 
-import com.enicarthage.dao.OrdonnanceDAO;
+import com.enicarthage.dto.CreateOrdonnanceDTO;
+import com.enicarthage.exception.AppException;
 import com.enicarthage.model.Ordonnance;
 import com.enicarthage.model.PrescriptionItem;
+import com.enicarthage.service.OrdonnanceService;
 import com.enicarthage.util.HttpUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -14,15 +16,22 @@ import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class OrdonnanceController implements HttpHandler {
 
-    private final OrdonnanceDAO dao = new OrdonnanceDAO();
+    private final OrdonnanceService ordonnanceService;
     private final Gson gson = new Gson();
+
+    public OrdonnanceController() {
+        this.ordonnanceService = new OrdonnanceService();
+    }
+
+    public OrdonnanceController(OrdonnanceService ordonnanceService) {
+        this.ordonnanceService = ordonnanceService;
+    }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -37,6 +46,8 @@ public class OrdonnanceController implements HttpHandler {
                 case "DELETE" -> handleDelete(exchange);
                 default       -> HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Utilisez GET, POST, PUT ou DELETE.");
             }
+        } catch (AppException e) {
+            HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
         } catch (Exception e) {
             System.err.println("[OrdonnanceController] Error: " + e.getMessage());
             e.printStackTrace();
@@ -54,7 +65,7 @@ public class OrdonnanceController implements HttpHandler {
         if (params.containsKey("patient_id")) {
             try {
                 int patientId = Integer.parseInt(params.get("patient_id"));
-                list = dao.findByPatient(patientId);
+                list = ordonnanceService.getPrescriptionsByPatient(patientId);
             } catch (NumberFormatException e) {
                 HttpUtils.sendError(exchange, 400, "patient_id doit être un entier valide.");
                 return;
@@ -62,62 +73,47 @@ public class OrdonnanceController implements HttpHandler {
         } else if (params.containsKey("doctor_id")) {
             try {
                 int doctorId = Integer.parseInt(params.get("doctor_id"));
-                list = dao.findByDocteur(doctorId);
+                list = ordonnanceService.getPrescriptionsByDoctor(doctorId);
             } catch (NumberFormatException e) {
                 HttpUtils.sendError(exchange, 400, "doctor_id doit être un entier valide.");
                 return;
             }
         } else {
-            list = dao.findAll();
+            list = ordonnanceService.getAllPrescriptions();
         }
 
         HttpUtils.sendJson(exchange, 200, list);
     }
 
-    private void handlePost(HttpExchange exchange) throws IOException, SQLException {
+    private void handlePost(HttpExchange exchange) throws IOException {
         try {
             String body = HttpUtils.readRequestBody(exchange);
-            JsonObject json = gson.fromJson(body, JsonObject.class);
+            CreateOrdonnanceDTO dto = gson.fromJson(body, CreateOrdonnanceDTO.class);
 
-            if (json == null || !json.has("idConsultation")) {
+            if (dto == null || dto.getIdConsultation() <= 0) {
                 HttpUtils.sendError(exchange, 400, "idConsultation est obligatoire.");
                 return;
             }
 
-            int idConsultation;
-            try {
-                idConsultation = json.get("idConsultation").getAsInt();
-            } catch (Exception e) {
-                HttpUtils.sendError(exchange, 400, "idConsultation doit être un entier valide.");
-                return;
-            }
+            int idOrdonnance = ordonnanceService.createOrdonnance(dto);
+            HttpUtils.sendJson(exchange, 201, Map.of(
+                    "success", true,
+                    "idOrdonnance", idOrdonnance,
+                    "message", "Ordonnance créée avec succès."
+            ));
 
-            String dateCreation = json.has("dateCreation") && !json.get("dateCreation").isJsonNull()
-                    ? json.get("dateCreation").getAsString()
-                    : LocalDate.now().toString();
-
-            Ordonnance ord = new Ordonnance();
-            ord.setIdConsultation(idConsultation);
-            ord.setDateCreation(dateCreation);
-
-            List<PrescriptionItem> items = parseItems(json);
-
-            int idOrdonnance = dao.create(ord, items);
-            if (idOrdonnance > 0) {
-                HttpUtils.sendJson(exchange, 201, Map.of(
-                        "success", true,
-                        "idOrdonnance", idOrdonnance,
-                        "message", "Ordonnance créée avec succès."
-                ));
-            } else {
-                HttpUtils.sendError(exchange, 500, "Échec lors de la création de l'ordonnance.");
-            }
         } catch (JsonSyntaxException e) {
             HttpUtils.sendError(exchange, 400, "Format JSON invalide.");
+        } catch (AppException e) {
+            HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("[OrdonnanceController] SQL Error: " + e.getMessage());
+            e.printStackTrace();
+            HttpUtils.sendError(exchange, 500, "Échec lors de la création de l'ordonnance.");
         }
     }
 
-    private void handlePut(HttpExchange exchange) throws IOException, SQLException {
+    private void handlePut(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
         String prefix = "/api/prescriptions";
         String after = path.substring(prefix.length()).replaceAll("^/|/$", "");
@@ -144,18 +140,21 @@ public class OrdonnanceController implements HttpHandler {
             }
 
             List<PrescriptionItem> items = parseItems(json);
-            boolean ok = dao.update(idOrdonnance, items);
-            if (ok) {
-                HttpUtils.sendSuccess(exchange, 200, "Ordonnance modifiée avec succès.");
-            } else {
-                HttpUtils.sendError(exchange, 404, "Ordonnance introuvable.");
-            }
+            ordonnanceService.updatePrescriptionItems(idOrdonnance, items);
+            HttpUtils.sendSuccess(exchange, 200, "Ordonnance modifiée avec succès.");
+
         } catch (JsonSyntaxException e) {
             HttpUtils.sendError(exchange, 400, "Format JSON invalide.");
+        } catch (AppException e) {
+            HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("[OrdonnanceController] SQL Error: " + e.getMessage());
+            e.printStackTrace();
+            HttpUtils.sendError(exchange, 500, "Erreur base de données.");
         }
     }
 
-    private void handleDelete(HttpExchange exchange) throws IOException, SQLException {
+    private void handleDelete(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
         String prefix = "/api/prescriptions";
         String after = path.substring(prefix.length()).replaceAll("^/|/$", "");
@@ -167,14 +166,16 @@ public class OrdonnanceController implements HttpHandler {
 
         try {
             int idOrdonnance = Integer.parseInt(after.split("/")[0]);
-            boolean ok = dao.delete(idOrdonnance);
-            if (ok) {
-                HttpUtils.sendSuccess(exchange, 200, "Ordonnance supprimée avec succès.");
-            } else {
-                HttpUtils.sendError(exchange, 404, "Ordonnance introuvable.");
-            }
+            ordonnanceService.deletePrescription(idOrdonnance);
+            HttpUtils.sendSuccess(exchange, 200, "Ordonnance supprimée avec succès.");
         } catch (NumberFormatException e) {
             HttpUtils.sendError(exchange, 400, "Identifiant non numérique.");
+        } catch (AppException e) {
+            HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("[OrdonnanceController] SQL Error: " + e.getMessage());
+            e.printStackTrace();
+            HttpUtils.sendError(exchange, 500, "Erreur lors de la suppression.");
         }
     }
 

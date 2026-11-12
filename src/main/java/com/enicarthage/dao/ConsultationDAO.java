@@ -87,6 +87,60 @@ public class ConsultationDAO {
         }
     }
 
+    public boolean delete(int idConsultation) throws SQLException {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // 1. Get associated id_rdv
+                int idRdv = -1;
+                String selectRdv = "SELECT id_rdv FROM consultation WHERE id_consultation = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(selectRdv)) {
+                    stmt.setInt(1, idConsultation);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        if (rs.next()) {
+                            idRdv = rs.getInt("id_rdv");
+                        } else {
+                            conn.rollback();
+                            return false;
+                        }
+                    }
+                }
+
+                // 2. Delete linked ordonnance(s) (prescriptions cascade automatically)
+                String deleteOrdonnances = "DELETE FROM ordonnance WHERE id_consultation = ?";
+                try (PreparedStatement stmt = conn.prepareStatement(deleteOrdonnances)) {
+                    stmt.setInt(1, idConsultation);
+                    stmt.executeUpdate();
+                }
+
+                // 3. Delete consultation
+                String deleteConsultation = "DELETE FROM consultation WHERE id_consultation = ?";
+                int affectedRows;
+                try (PreparedStatement stmt = conn.prepareStatement(deleteConsultation)) {
+                    stmt.setInt(1, idConsultation);
+                    affectedRows = stmt.executeUpdate();
+                }
+
+                // 4. Revert rendez_vous status back to 'CONFIRME' if rdv exists
+                if (idRdv > 0) {
+                    String revertRdv = "UPDATE rendez_vous SET statut = 'CONFIRME' WHERE id_rdv = ?";
+                    try (PreparedStatement stmt = conn.prepareStatement(revertRdv)) {
+                        stmt.setInt(1, idRdv);
+                        stmt.executeUpdate();
+                    }
+                }
+
+                conn.commit();
+                return affectedRows > 0;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
     public List<Consultation> findAll() throws SQLException {
         String sql = SELECT_BASE + " ORDER BY c.date_consultation DESC";
         return executeQuery(sql, null);

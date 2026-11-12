@@ -1,8 +1,9 @@
 
 package com.enicarthage.controller;
 
-import com.enicarthage.model.AuthResponse;
-import com.enicarthage.model.UtilisateurAuth;
+import com.enicarthage.dto.AuthResponseDTO;
+import com.enicarthage.dto.LoginRequestDTO;
+import com.enicarthage.dto.UtilisateurAuthDTO;
 import com.enicarthage.service.AuthService;
 import com.enicarthage.util.HttpUtils;
 
@@ -16,12 +17,17 @@ import java.sql.SQLException;
 
 public class AuthController implements HttpHandler {
 
-    private final AuthService authService = new AuthService();
-    private final Gson gson = new Gson();
+    private final AuthService authService;
+    private final Gson gson;
 
-    private static class LoginRequest {
-        String login;
-        String password;
+    public AuthController() {
+        this.authService = new AuthService();
+        this.gson = new Gson();
+    }
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+        this.gson = new Gson();
     }
 
     @Override
@@ -37,21 +43,21 @@ public class AuthController implements HttpHandler {
             }
 
             String body = HttpUtils.readRequestBody(exchange);
-            LoginRequest request = gson.fromJson(body, LoginRequest.class);
+            LoginRequestDTO request = gson.fromJson(body, LoginRequestDTO.class);
 
             if (request == null
-                    || request.login == null
-                    || request.password == null
-                    || request.login.isBlank()
-                    || request.password.isBlank()) {
+                    || request.getLogin() == null
+                    || request.getPassword() == null
+                    || request.getLogin().isBlank()
+                    || request.getPassword().isBlank()) {
 
                 HttpUtils.sendError(exchange, 400, "Identifiant et mot de passe sont obligatoires.");
                 return;
             }
 
-            UtilisateurAuth user = authService.authenticate(
-                    request.login.trim(),
-                    request.password
+            UtilisateurAuthDTO user = authService.authenticate(
+                    request.getLogin().trim(),
+                    request.getPassword()
             );
 
             if (user == null) {
@@ -59,20 +65,25 @@ public class AuthController implements HttpHandler {
                 return;
             }
 
-            AuthResponse response = new AuthResponse(
+            String token = com.enicarthage.util.TokenUtils.generateToken(user.getIdUtilisateur(), user.getRole());
+
+            AuthResponseDTO response = new AuthResponseDTO(
                     true,
                     "Authentification réussie.",
                     user.getIdUtilisateur(),
                     user.getNom(),
                     user.getPrenom(),
                     user.getLogin(),
-                    user.getRole()
+                    user.getRole(),
+                    token
             );
 
             HttpUtils.sendJson(exchange, 200, response);
 
         } catch (JsonSyntaxException e) {
             HttpUtils.sendError(exchange, 400, "Format JSON invalide.");
+        } catch (com.enicarthage.exception.AppException e) {
+            HttpUtils.sendError(exchange, e.getStatusCode(), e.getMessage());
         } catch (SQLException e) {
             System.err.println("[AuthController] Database error: " + e.getMessage());
             e.printStackTrace();

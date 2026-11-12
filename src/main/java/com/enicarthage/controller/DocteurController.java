@@ -1,7 +1,7 @@
 package com.enicarthage.controller;
 
-import com.enicarthage.dao.DocteurDAO;
 import com.enicarthage.model.DocteurInfo;
+import com.enicarthage.service.DocteurService;
 import com.enicarthage.util.HttpUtils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -12,7 +12,15 @@ import java.util.List;
 
 public class DocteurController implements HttpHandler {
 
-    private final DocteurDAO docteurDAO = new DocteurDAO();
+    private final DocteurService docteurService;
+
+    public DocteurController() {
+        this.docteurService = new DocteurService();
+    }
+
+    public DocteurController(DocteurService docteurService) {
+        this.docteurService = docteurService;
+    }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -26,7 +34,7 @@ public class DocteurController implements HttpHandler {
                 return;
             }
 
-            List<DocteurInfo> docteurs = docteurDAO.findAll();
+            List<DocteurInfo> docteurs = docteurService.getAllDoctors();
             HttpUtils.sendJson(exchange, 200, docteurs);
 
         } catch (SQLException e) {

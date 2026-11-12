@@ -7,6 +7,7 @@ import com.enicarthage.model.PrescriptionItem;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class OrdonnanceDAO {
 
@@ -187,6 +188,33 @@ public class OrdonnanceDAO {
             """;
 
         return fetchOrdonnancesWithItems(sql, idDocteur);
+    }
+
+    public Optional<Ordonnance> findById(int idOrdonnance) throws SQLException {
+        String sql = """
+            SELECT
+                o.id_ordonnance,
+                o.date_creation,
+                o.id_consultation,
+                c.diagnostic,
+                r.id_patient,
+                up.nom AS patient_nom,
+                up.prenom AS patient_prenom,
+                up.email AS patient_email,
+                r.id_docteur,
+                ud.nom AS docteur_nom,
+                ud.prenom AS docteur_prenom,
+                d.specialite AS docteur_specialite
+            FROM ordonnance o
+            JOIN consultation c ON o.id_consultation = c.id_consultation
+            JOIN rendez_vous r ON c.id_rdv = r.id_rdv
+            JOIN utilisateur up ON r.id_patient = up.id_utilisateur
+            JOIN docteur d ON r.id_docteur = d.id_utilisateur
+            JOIN utilisateur ud ON d.id_utilisateur = ud.id_utilisateur
+            WHERE o.id_ordonnance = ?
+            """;
+        List<Ordonnance> list = fetchOrdonnancesWithItems(sql, idOrdonnance);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
     public List<Ordonnance> findAll() throws SQLException {

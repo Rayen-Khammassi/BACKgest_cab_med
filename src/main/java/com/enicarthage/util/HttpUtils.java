@@ -39,6 +39,15 @@ public class HttpUtils {
         }
     }
 
+    public static TokenUtils.UserPrincipal getAuthenticatedUser(HttpExchange exchange) {
+        String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new com.enicarthage.exception.AuthenticationException("Authentification requise (en-tête Authorization Bearer manquant).");
+        }
+        String token = authHeader.substring(7).trim();
+        return TokenUtils.verifyToken(token);
+    }
+
     public static void sendJson(HttpExchange exchange, int statusCode, Object data) throws IOException {
         String json = (data instanceof String str) ? str : gson.toJson(data);
         byte[] bytes = json.getBytes(StandardCharsets.UTF_8);

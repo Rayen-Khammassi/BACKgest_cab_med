@@ -1,11 +1,11 @@
-
 package com.enicarthage.model;
 
 public class Medicament {
+    private int idMedicament;
+    private String nom;
+    private String dosage;
 
-    private final int idMedicament;
-    private final String nom;
-    private final String dosage;
+    public Medicament() {}
 
     public Medicament(int idMedicament, String nom, String dosage) {
         this.idMedicament = idMedicament;
@@ -17,11 +17,23 @@ public class Medicament {
         return idMedicament;
     }
 
+    public void setIdMedicament(int idMedicament) {
+        this.idMedicament = idMedicament;
+    }
+
     public String getNom() {
         return nom;
     }
 
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
     public String getDosage() {
         return dosage;
+    }
+
+    public void setDosage(String dosage) {
+        this.dosage = dosage;
     }
 }

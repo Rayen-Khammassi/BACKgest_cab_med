@@ -183,7 +183,7 @@ VALUES (
            'Ahmed',
            'ahmed.benali@example.com',
            'docteur1',
-           '$2a$12$ZkK4xkseq159pJd5pLifle1yBDANkFPbfbMVA6GrPQEhRNTfltAH2'
+           '$2a$12$ZkK4xkseq159pJd5pLifle1yBDANkFPbfbMVA6GrPQEhRNTfltAH2'//////Docteur@2026!
        );
 
 -- 2. Récupérer l'identifiant généré

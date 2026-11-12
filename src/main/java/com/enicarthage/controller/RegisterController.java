@@ -1,15 +1,15 @@
 package com.enicarthage.controller;
 
 import com.enicarthage.service.PatientRegistrationService;
+import com.enicarthage.util.HttpUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.Map;
 
 public class RegisterController implements HttpHandler {
 
@@ -28,56 +28,23 @@ public class RegisterController implements HttpHandler {
         String adresse;
     }
 
-    private static class ApiResponse {
-        boolean success;
-        String message;
-
-        ApiResponse(boolean success, String message) {
-            this.success = success;
-            this.message = message;
-        }
-    }
-
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-
-        // CORS configuration
-        exchange.getResponseHeaders().set(
-                "Access-Control-Allow-Origin", "http://localhost:5173"
-        );
-        exchange.getResponseHeaders().set(
-                "Access-Control-Allow-Methods", "POST, OPTIONS"
-        );
-        exchange.getResponseHeaders().set(
-                "Access-Control-Allow-Headers", "Content-Type"
-        );
-
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
-            exchange.sendResponseHeaders(204, -1);
-            exchange.close();
-            return;
-        }
-
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            sendJson(exchange, 405, false, "Method not allowed.");
-            return;
-        }
-
         try {
-            String body;
-
-            try (InputStream input = exchange.getRequestBody()) {
-                body = new String(
-                        input.readAllBytes(),
-                        StandardCharsets.UTF_8
-                );
+            if (HttpUtils.handleCorsAndPreflight(exchange)) {
+                return;
             }
 
-            RegisterRequest request =
-                    gson.fromJson(body, RegisterRequest.class);
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                HttpUtils.sendError(exchange, 405, "Méthode non autorisée. Seul POST est supporté.");
+                return;
+            }
+
+            String body = HttpUtils.readRequestBody(exchange);
+            RegisterRequest request = gson.fromJson(body, RegisterRequest.class);
 
             if (request == null) {
-                sendJson(exchange, 400, false, "Invalid request.");
+                HttpUtils.sendError(exchange, 400, "Corps de requête invalide.");
                 return;
             }
 
@@ -91,58 +58,34 @@ public class RegisterController implements HttpHandler {
                     request.adresse
             );
 
-            sendJson(
+            HttpUtils.sendJson(
                     exchange,
                     201,
-                    true,
-                    "Patient account created successfully."
+                    Map.of(
+                            "success", true,
+                            "message", "Compte patient créé avec succès."
+                    )
             );
 
         } catch (JsonSyntaxException e) {
-
-            sendJson(exchange, 400, false, "Invalid JSON format.");
-
+            HttpUtils.sendError(exchange, 400, "Format JSON invalide.");
         } catch (IllegalArgumentException e) {
-
-            sendJson(exchange, 400, false, e.getMessage());
-
+            HttpUtils.sendError(exchange, 400, e.getMessage());
         } catch (SQLException e) {
-
+            System.err.println("[RegisterController] Database error: " + e.getMessage());
             e.printStackTrace();
 
-            String message = "Database error.";
-
-            // MariaDB duplicate entry error
             if (e.getErrorCode() == 1062) {
-                message = "This email or login is already in use.";
-                sendJson(exchange, 409, false, message);
+                HttpUtils.sendError(exchange, 409, "Cet email ou cet identifiant est déjà utilisé.");
             } else {
-                sendJson(exchange, 500, false, message);
+                HttpUtils.sendError(exchange, 500, "Erreur base de données lors de la création du compte.");
             }
-
+        } catch (Exception e) {
+            System.err.println("[RegisterController] Unexpected error: " + e.getMessage());
+            e.printStackTrace();
+            HttpUtils.sendError(exchange, 500, "Erreur serveur inattendue.");
         } finally {
             exchange.close();
         }
-    }
-
-    private void sendJson(
-            HttpExchange exchange,
-            int statusCode,
-            boolean success,
-            String message
-    ) throws IOException {
-
-        ApiResponse response = new ApiResponse(success, message);
-        String json = gson.toJson(response);
-
-        exchange.getResponseHeaders().set(
-                "Content-Type", "application/json; charset=UTF-8"
-        );
-
-        byte[] responseBytes = json.getBytes(StandardCharsets.UTF_8);
-
-        exchange.sendResponseHeaders(statusCode, responseBytes.length);
-        exchange.getResponseBody().write(responseBytes);
-        exchange.getResponseBody().close();
     }
 }

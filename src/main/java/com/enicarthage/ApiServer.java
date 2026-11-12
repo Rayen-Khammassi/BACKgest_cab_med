@@ -10,43 +10,48 @@ import java.util.concurrent.Executors;
 public class ApiServer {
 
     private final int port;
-    private final int medPort;
+    private final Integer medPort;
     private final Router router;
     private HttpServer mainServer;
     private HttpServer medServer;
 
     public ApiServer() {
-        this(8081, 8082);
+        this(8081, null);
     }
 
     public ApiServer(int port) {
-        this(port, 8082);
+        this(port, null);
     }
 
-    public ApiServer(int port, int medPort) {
+    public ApiServer(int port, Integer medPort) {
         this.port = port;
         this.medPort = medPort;
         this.router = new Router();
     }
 
     public void start() throws IOException {
-        // ── Serveur Principal (Auth, Patients, Rendez-vous, Consultations, Ordonnances) ──
+        // ── Serveur Principal Unifié (Auth, Patients, Docteurs, Rendez-vous, Consultations, Ordonnances, Médicaments) ──
         mainServer = HttpServer.create(new InetSocketAddress(port), 0);
         mainServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
         mainServer.createContext("/api", router);
         mainServer.start();
 
-        // ── Serveur Secondaire (Médicaments — contrat binôme port 8082) ──
-        medServer = HttpServer.create(new InetSocketAddress(medPort), 0);
-        medServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
-        medServer.createContext("/api", router);
-        medServer.start();
-
         System.out.println("=================================================");
-        System.out.println(" Backend Al-Zahrawi (GESTCABMED) : Serveurs Démarrés");
+        System.out.println(" Backend Al-Zahrawi (GESTCABMED) : Serveur Démarré");
         System.out.println("-------------------------------------------------");
-        System.out.println(" [8081] API Principale :  http://localhost:" + port + "/api");
-        System.out.println(" [8082] API Médicaments : http://localhost:" + medPort + "/api/medicaments");
+        System.out.println(" [" + port + "] API Unifiée : http://localhost:" + port + "/api");
+        System.out.println("        - Auth, Patients, Docteurs, Rendez-vous");
+        System.out.println("        - Consultations, Ordonnances, Médicaments");
+
+        // ── Serveur Secondaire Optionnel (actif uniquement si configuré explicitement) ──
+        if (medPort != null && medPort != port && medPort > 0) {
+            medServer = HttpServer.create(new InetSocketAddress(medPort), 0);
+            medServer.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
+            medServer.createContext("/api", router);
+            medServer.start();
+            System.out.println(" [" + medPort + "] API Médicaments (secondaire) : http://localhost:" + medPort + "/api/medicaments");
+        }
+
         System.out.println("=================================================");
     }
 

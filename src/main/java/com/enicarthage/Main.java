@@ -12,7 +12,7 @@ public class Main {
                 } catch (NumberFormatException ignored) {}
             }
 
-            int medPort = 8082;
+            Integer medPort = null;
             String envMedPort = System.getenv("MED_PORT");
             if (envMedPort != null && !envMedPort.isBlank()) {
                 try {

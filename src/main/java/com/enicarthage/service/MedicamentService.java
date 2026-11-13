@@ -41,18 +41,24 @@ public class MedicamentService {
         if (dosage == null || dosage.trim().isEmpty()) {
             throw new ValidationException("Le dosage du médicament est obligatoire.");
         }
+        if (!dosage.matches(".*\\d+.*")) {
+            throw new ValidationException("Le dosage doit contenir une valeur numérique (ex: '500 mg', '10 ml', '1 g').");
+        }
 
         Medicament m = new Medicament(0, nom.trim(), dosage.trim());
         return medicamentDAO.create(m);
     }
 
     public Medicament updateMedicament(int id, String nom, String dosage) throws SQLException {
-        if (id <= 0) throw new ValidationException("Identifiant de médicament invalide.");
+        if (id <= 0) throw new ValidationException("Identifiant de médicament invalide (doit être supérieur à 0).");
         if (nom == null || nom.trim().isEmpty()) {
             throw new ValidationException("Le nom du médicament est obligatoire.");
         }
         if (dosage == null || dosage.trim().isEmpty()) {
             throw new ValidationException("Le dosage du médicament est obligatoire.");
+        }
+        if (!dosage.matches(".*\\d+.*")) {
+            throw new ValidationException("Le dosage doit contenir une valeur numérique (ex: '500 mg', '10 ml', '1 g').");
         }
 
         Medicament m = new Medicament(id, nom.trim(), dosage.trim());

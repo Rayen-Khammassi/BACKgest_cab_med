@@ -89,6 +89,11 @@ public class PatientController implements HttpHandler {
             String nom = json.get("nom").getAsString().trim();
             String prenom = json.get("prenom").getAsString().trim();
             String email = json.get("email").getAsString().trim();
+
+            if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+                HttpUtils.sendError(exchange, 400, "Format d'adresse email invalide (ex: exemple@domaine.com).");
+                return;
+            }
             String dateNaissance = json.has("dateNaissance") && !json.get("dateNaissance").isJsonNull()
                     ? json.get("dateNaissance").getAsString().trim() : "";
             String adresse = json.has("adresse") && !json.get("adresse").isJsonNull()
@@ -135,6 +140,10 @@ public class PatientController implements HttpHandler {
 
         try {
             int id = Integer.parseInt(after.split("/")[0]);
+            if (id <= 0) {
+                HttpUtils.sendError(exchange, 400, "Identifiant patient non numérique ou non positif.");
+                return;
+            }
             String body = HttpUtils.readRequestBody(exchange);
             JsonObject json = gson.fromJson(body, JsonObject.class);
 
@@ -162,6 +171,11 @@ public class PatientController implements HttpHandler {
 
             if (nom.isBlank() || prenom.isBlank() || email.isBlank()) {
                 HttpUtils.sendError(exchange, 400, "Nom, prénom et email sont requis.");
+                return;
+            }
+
+            if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+                HttpUtils.sendError(exchange, 400, "Format d'adresse email invalide (ex: exemple@domaine.com).");
                 return;
             }
 

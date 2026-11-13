@@ -40,15 +40,19 @@ public class OrdonnanceService {
         List<PrescriptionItem> items = new ArrayList<>();
         if (dto.getItems() != null) {
             for (PrescriptionItemDTO itemDto : dto.getItems()) {
-                if (itemDto.getIdMedicament() > 0) {
-                    PrescriptionItem item = new PrescriptionItem();
-                    item.setIdMedicament(itemDto.getIdMedicament());
-                    item.setPosologie(itemDto.getPosologie());
-                    item.setFrequence(itemDto.getFrequence());
-                    item.setDuree(itemDto.getDuree());
-                    item.setQuantite(itemDto.getQuantite());
-                    items.add(item);
+                if (itemDto.getIdMedicament() <= 0) {
+                    throw new ValidationException("L'identifiant du médicament doit être un nombre strictement positif.");
                 }
+                if (itemDto.getQuantite() <= 0) {
+                    throw new ValidationException("La quantité de chaque médicament doit être un nombre strictement positif (au moins 1).");
+                }
+                PrescriptionItem item = new PrescriptionItem();
+                item.setIdMedicament(itemDto.getIdMedicament());
+                item.setPosologie(itemDto.getPosologie());
+                item.setFrequence(itemDto.getFrequence());
+                item.setDuree(itemDto.getDuree());
+                item.setQuantite(itemDto.getQuantite());
+                items.add(item);
             }
         }
 
@@ -80,7 +84,17 @@ public class OrdonnanceService {
     }
 
     public boolean updatePrescriptionItems(int idOrdonnance, List<PrescriptionItem> items) throws SQLException {
-        if (idOrdonnance <= 0) throw new ValidationException("idOrdonnance invalide.");
+        if (idOrdonnance <= 0) throw new ValidationException("idOrdonnance invalide (doit être supérieur à 0).");
+        if (items != null) {
+            for (PrescriptionItem item : items) {
+                if (item.getIdMedicament() <= 0) {
+                    throw new ValidationException("L'identifiant du médicament doit être un nombre strictement positif.");
+                }
+                if (item.getQuantite() <= 0) {
+                    throw new ValidationException("La quantité de chaque médicament doit être un nombre strictement positif (au moins 1).");
+                }
+            }
+        }
         boolean updated = ordonnanceDAO.update(idOrdonnance, items);
         if (!updated) {
             throw new ResourceNotFoundException("Ordonnance introuvable avec l'ID : " + idOrdonnance);

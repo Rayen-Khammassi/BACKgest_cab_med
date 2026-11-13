@@ -9,8 +9,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.regex.Pattern;
 
 public class PatientRegistrationService {
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    );
 
     public void registerPatient(
             String nom,
@@ -27,25 +33,38 @@ public class PatientRegistrationService {
                 || isBlank(email) || isBlank(login)
                 || isBlank(password)) {
             throw new IllegalArgumentException(
-                    "Please fill in all required fields."
+                    "Veuillez remplir tous les champs obligatoires."
+            );
+        }
+
+        // Email format validation
+        if (!EMAIL_PATTERN.matcher(email.trim()).matches()) {
+            throw new IllegalArgumentException(
+                    "Format d'adresse email invalide (ex: exemple@domaine.com)."
             );
         }
 
         if (password.length() < 8) {
             throw new IllegalArgumentException(
-                    "Password must contain at least 8 characters."
+                    "Le mot de passe doit comporter au moins 8 caractères."
             );
         }
 
-        // Convert the date received from React
+        // Convert and validate the date received from React
         Date sqlDate = null;
 
         if (!isBlank(dateNaissance)) {
             try {
-                sqlDate = Date.valueOf(LocalDate.parse(dateNaissance));
-            } catch (Exception e) {
+                LocalDate parsedDate = LocalDate.parse(dateNaissance.trim());
+                if (parsedDate.isAfter(LocalDate.now())) {
+                    throw new IllegalArgumentException(
+                            "La date de naissance ne peut pas être dans le futur."
+                    );
+                }
+                sqlDate = Date.valueOf(parsedDate);
+            } catch (DateTimeParseException e) {
                 throw new IllegalArgumentException(
-                        "Invalid date of birth."
+                        "Format de date de naissance invalide (AAAA-MM-JJ attendu)."
                 );
             }
         }

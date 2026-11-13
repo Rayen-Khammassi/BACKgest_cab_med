@@ -165,10 +165,11 @@ public class MedicamentController implements HttpHandler {
     }
 
     private String validate(String nom, String dosage) {
-        if (nom == null || nom.isBlank())    return "Le nom du médicament est obligatoire";
-        if (dosage == null || dosage.isBlank()) return "Le dosage est obligatoire";
-        if (nom.length() > MAX_NOM)          return "Le nom ne peut pas dépasser " + MAX_NOM + " caractères";
-        if (dosage.length() > MAX_DOSAGE)    return "Le dosage ne peut pas dépasser " + MAX_DOSAGE + " caractères";
+        if (nom == null || nom.isBlank())    return "Le nom du médicament est obligatoire.";
+        if (dosage == null || dosage.isBlank()) return "Le dosage est obligatoire.";
+        if (nom.length() > MAX_NOM)          return "Le nom ne peut pas dépasser " + MAX_NOM + " caractères.";
+        if (dosage.length() > MAX_DOSAGE)    return "Le dosage ne peut pas dépasser " + MAX_DOSAGE + " caractères.";
+        if (!dosage.matches(".*\\d+.*"))     return "Le dosage doit contenir une valeur numérique (ex: '500 mg', '10 ml', '1 g').";
         return null;
     }
 }

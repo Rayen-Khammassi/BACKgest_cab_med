@@ -53,19 +53,21 @@ public class PatientService {
         if (email == null || email.isBlank() || !EMAIL_PATTERN.matcher(email.trim()).matches()) {
             throw new ValidationException("Format d'adresse email invalide (ex: exemple@domaine.com).");
         }
-        if (dateNaissance != null && !dateNaissance.isBlank()) {
-            try {
-                LocalDate birthDate = LocalDate.parse(dateNaissance.trim());
-                if (birthDate.isAfter(LocalDate.now())) {
-                    throw new ValidationException("La date de naissance ne peut pas être dans le futur.");
-                }
-            } catch (DateTimeParseException e) {
-                throw new ValidationException("Format de date de naissance invalide (AAAA-MM-JJ attendu).");
-            }
+        if (dateNaissance == null || dateNaissance.isBlank()) {
+            throw new ValidationException("La date de naissance est obligatoire.");
         }
-        boolean updated = patientDAO.update(id, nom.trim(), prenom.trim(), email.trim(),
-                (dateNaissance != null && !dateNaissance.isBlank()) ? dateNaissance.trim() : null,
-                (adresse != null && !adresse.isBlank()) ? adresse.trim() : null);
+        try {
+            LocalDate birthDate = LocalDate.parse(dateNaissance.trim());
+            if (birthDate.isAfter(LocalDate.now())) {
+                throw new ValidationException("La date de naissance ne peut pas être dans le futur.");
+            }
+        } catch (DateTimeParseException e) {
+            throw new ValidationException("Format de date de naissance invalide (AAAA-MM-JJ attendu).");
+        }
+        if (adresse == null || adresse.isBlank()) {
+            throw new ValidationException("L'adresse est obligatoire.");
+        }
+        boolean updated = patientDAO.update(id, nom.trim(), prenom.trim(), email.trim(), dateNaissance.trim(), adresse.trim());
         if (!updated) {
             throw new ResourceNotFoundException("Impossible de mettre à jour : patient introuvable.");
         }

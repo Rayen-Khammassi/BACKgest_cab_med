@@ -81,23 +81,27 @@ public class PatientController implements HttpHandler {
             String body = HttpUtils.readRequestBody(exchange);
             JsonObject json = gson.fromJson(body, JsonObject.class);
 
-            if (json == null || !json.has("nom") || !json.has("prenom") || !json.has("email")) {
-                HttpUtils.sendError(exchange, 400, "Nom, prénom et email sont obligatoires.");
+            if (json == null || !json.has("nom") || !json.has("prenom") || !json.has("email")
+                    || !json.has("dateNaissance") || !json.has("adresse")) {
+                HttpUtils.sendError(exchange, 400, "Nom, prénom, email, date de naissance et adresse sont obligatoires.");
                 return;
             }
 
             String nom = json.get("nom").getAsString().trim();
             String prenom = json.get("prenom").getAsString().trim();
             String email = json.get("email").getAsString().trim();
+            String dateNaissance = json.get("dateNaissance").getAsString().trim();
+            String adresse = json.get("adresse").getAsString().trim();
+
+            if (nom.isBlank() || prenom.isBlank() || email.isBlank() || dateNaissance.isBlank() || adresse.isBlank()) {
+                HttpUtils.sendError(exchange, 400, "Nom, prénom, email, date de naissance et adresse sont obligatoires.");
+                return;
+            }
 
             if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
                 HttpUtils.sendError(exchange, 400, "Format d'adresse email invalide (ex: exemple@domaine.com).");
                 return;
             }
-            String dateNaissance = json.has("dateNaissance") && !json.get("dateNaissance").isJsonNull()
-                    ? json.get("dateNaissance").getAsString().trim() : "";
-            String adresse = json.has("adresse") && !json.get("adresse").isJsonNull()
-                    ? json.get("adresse").getAsString().trim() : "";
 
             String login = json.has("login") && !json.get("login").isJsonNull()
                     ? json.get("login").getAsString().trim()
@@ -169,8 +173,8 @@ public class PatientController implements HttpHandler {
             String adresse = json.has("adresse") && !json.get("adresse").isJsonNull()
                     ? json.get("adresse").getAsString().trim() : "";
 
-            if (nom.isBlank() || prenom.isBlank() || email.isBlank()) {
-                HttpUtils.sendError(exchange, 400, "Nom, prénom et email sont requis.");
+            if (nom.isBlank() || prenom.isBlank() || email.isBlank() || dateNaissance.isBlank() || adresse.isBlank()) {
+                HttpUtils.sendError(exchange, 400, "Nom, prénom, email, date de naissance et adresse sont obligatoires.");
                 return;
             }
 

@@ -31,9 +31,10 @@ public class PatientRegistrationService {
         // Validate required fields
         if (isBlank(nom) || isBlank(prenom)
                 || isBlank(email) || isBlank(login)
-                || isBlank(password)) {
+                || isBlank(password) || isBlank(dateNaissance)
+                || isBlank(adresse)) {
             throw new IllegalArgumentException(
-                    "Veuillez remplir tous les champs obligatoires."
+                    "Tous les champs sont obligatoires (nom, prénom, email, date de naissance, adresse, identifiant, mot de passe)."
             );
         }
 
@@ -51,22 +52,19 @@ public class PatientRegistrationService {
         }
 
         // Convert and validate the date received from React
-        Date sqlDate = null;
-
-        if (!isBlank(dateNaissance)) {
-            try {
-                LocalDate parsedDate = LocalDate.parse(dateNaissance.trim());
-                if (parsedDate.isAfter(LocalDate.now())) {
-                    throw new IllegalArgumentException(
-                            "La date de naissance ne peut pas être dans le futur."
-                    );
-                }
-                sqlDate = Date.valueOf(parsedDate);
-            } catch (DateTimeParseException e) {
+        Date sqlDate;
+        try {
+            LocalDate parsedDate = LocalDate.parse(dateNaissance.trim());
+            if (parsedDate.isAfter(LocalDate.now())) {
                 throw new IllegalArgumentException(
-                        "Format de date de naissance invalide (AAAA-MM-JJ attendu)."
+                        "La date de naissance ne peut pas être dans le futur."
                 );
             }
+            sqlDate = Date.valueOf(parsedDate);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException(
+                    "Format de date de naissance invalide (AAAA-MM-JJ attendu)."
+            );
         }
 
         // Hash the password before storing it
@@ -130,16 +128,8 @@ public class PatientRegistrationService {
 
                     patientStatement.setInt(1, userId);
 
-                    if (sqlDate == null) {
-                        patientStatement.setNull(
-                                2,
-                                java.sql.Types.DATE
-                        );
-                    } else {
-                        patientStatement.setDate(2, sqlDate);
-                    }
-
-                    patientStatement.setString(3, adresse);
+                    patientStatement.setDate(2, sqlDate);
+                    patientStatement.setString(3, adresse.trim());
 
                     patientStatement.executeUpdate();
                 }
